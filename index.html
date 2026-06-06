@@ -63,12 +63,21 @@ const TOPICS = {
 const EXAM_TYPES = [
   { id: "junior_high", label: "中学受験", emoji: "🏫", color: "#FF8C42", subjects: ["算数", "国語", "理科", "社会"] },
   { id: "high_school", label: "高校受験", emoji: "🎯", color: "#06D6A0", subjects: ["数学", "英語", "国語", "理科", "社会"] },
+  { id: "university", label: "大学受験", emoji: "🎓", color: "#9B59B6", subjects: ["数学", "英語", "国語", "物理", "化学", "生物", "日本史", "世界史", "地理", "現代文・小論文"] },
 ];
 
 const EXAM_MODES = [
   { id: "weak_point", label: "苦手克服", desc: "苦手分野を集中特訓", emoji: "💪" },
   { id: "drill", label: "入試演習", desc: "入試レベルの問題を解く", emoji: "📝" },
   { id: "strategy", label: "受験戦略", desc: "勉強計画・時間配分のアドバイス", emoji: "🗺️" },
+];
+
+const UNI_MODES = [
+  { id: "common_test", label: "共通テスト対策", desc: "マーク式・時間配分・出題傾向を攻略", emoji: "📝" },
+  { id: "secondary", label: "二次試験・記述対策", desc: "難関大レベルの記述・論述問題", emoji: "✍️" },
+  { id: "target", label: "志望校別対策", desc: "志望校の傾向に合わせた特訓", emoji: "🎯" },
+  { id: "weak_point", label: "苦手克服", desc: "苦手科目・分野を集中特訓", emoji: "💪" },
+  { id: "strategy", label: "受験戦略", desc: "勉強計画・出願戦略のアドバイス", emoji: "🗺️" },
 ];
 
 const SUBJECT_COLORS = {
@@ -145,13 +154,15 @@ function App() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [wrongAnswers, setWrongAnswers] = useState([]);
+  const [showWrongBtn, setShowWrongBtn] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages, loading]);
 
   const resetAll = () => {
-    setGrade(null); setSubject(null); setTopic(null); setMode("lesson");
+    setGrade(null); setSubject(null); setTopic(null); setMode("lesson"); setWrongAnswers([]); setShowWrongBtn(false);
     setExamType(null); setExamSubject(null); setExamMode(null);
     setMessages([]); setLearningType(null); setImage(null); setImagePreview(null);
   };
@@ -176,34 +187,28 @@ function App() {
 ${examMode==="weak_point"?`モード: 苦手克服 - 最初に「どの分野が苦手ですか？💪」と聞いてください`:examMode==="drill"?`モード: 入試演習 - 問題に「【入試問題】」をつける。難易度★1〜3表示。最初に「では${examSubject}の入試レベル問題を出しましょう！」と言ってください`:`モード: 受験戦略 - 最初に「受験まであとどれくらいですか？」と聞いてください`}`;
     }
     const modeLabel = mode === "quiz" ? "小テスト" : mode === "review" ? "振り返りテスト" : "授業";
-    return `あなたは優秀でフレンドリーな塾の先生です。
+    return `あなたはフレンドリーでノリのいい塾の先生だよ。
 生徒: ${grade} / 科目: ${subject} / トピック: ${topic} / モード: ${modeLabel}
-言語: 常に日本語。スタイル: 親しみやすく丁寧に。絵文字適度に。難易度: ${grade}に合わせる。
-画像が送られてきた場合は手書きの途中式や答えとして採点してください。
+
+【話し方ルール・絶対守って】
+- タメ口でフレンドリーに話す。「〜だよ」「〜しよう」「〜じゃん」「〜だね」を使う
+- 堅い敬語は使わない。でも乱暴にもならない、親しみやすい感じで
+- 絵文字を自然に使って楽しい雰囲気を作る
+- 「なるほどね！」「いい感じ！」「惜しい！」「そうそう！」みたいな自然な相槌を使う
+- ${grade}の生徒に合わせた言葉遣いと難易度で話す
+- 画像が送られてきたら手書きの途中式として採点する
 
 【採点ルール・厳守】
-- 正解のとき: 「⭕️ 正解！」とだけ言って、次の問題に進む
-- 不正解のとき: 「❌ 不正解」と言い、①どこが間違いか ②正しい答え ③なぜそうなるかの解説 を丁寧に説明する
+- 正解のとき: 「やったじゃん！⭕️」「正解！さすが！⭕️」など明るく一言だけ言って次の問題へ
+- 不正解のとき: 「惜しい！❌」と言って、①どこが間違いか ②正しい答え ③なぜそうなるか をやさしく説明する
 - 採点は必ず明確に。「惜しい」だけで終わらない
 
 ${mode === "quiz" ? `【小テストモード】
-- ${topic}からランダムに5問出題する
-- 1問ずつ出して、答えを待ってから採点→次の問題へ
-- 問題には「【問題1/5】」のように番号をつける
-- 全問終わったら「正解数/5問」でスコアを表示して総評する
-- 最初に「では${topic}の小テストを始めます！全5問です💪」と言ってください` 
+${topic}からランダムに5問出題してね。1問ずつ出して答え待ってから採点→次へ。「【問題1/5】」みたいに番号つけて。全部終わったらスコアと一言コメント出してね。最初に「じゃあ${topic}の小テストやってこ！全5問ね💪」って言って。`
 : mode === "review" ? `【振り返りテストモード】
-- 今日習った${topic}の重要ポイントを3〜5問で確認する
-- 基礎問題から応用問題の順で出題する
-- 全問終わったら「今日の授業の振り返り結果」として総評とまとめを出す
-- 最初に「今日の${topic}の振り返りテストをしよう！」と言ってください`
+今日やった${topic}を3〜5問で確認してね。基礎から応用の順で。全部終わったら今日のまとめと総評を出して。最初に「じゃあ今日の${topic}の振り返りやってこ！」って言って。`
 : `【通常授業モード】
-1. まず「${topic}」を簡単に説明する
-2. 例題を1問出して一緒に解く
-3. 練習問題を出して生徒に解いてもらう
-4. 採点・解説をする
-5. 「次の問題に進む？それとも質問ある？」と聞く
-最初に「今日は${topic}を勉強しよう！まず説明するね😊」と言って始めてください`}`;
+まず${topic}をわかりやすく説明して、例題を一緒に解いて、練習問題を出してね。採点して解説したら「次いく？それとも質問ある？」って聞いて。最初に「今日は${topic}やってこ！まず説明するね😊」って言って。`}`;
   };
 
   const callAPI = async (msgs) => {
@@ -245,6 +250,35 @@ ${mode === "quiz" ? `【小テストモード】
     const newMsgs = [...messages, userMsg];
     setMessages(prev => [...prev, displayMsg]);
     setLoading(true);
+    try {
+      const text = await callAPI(newMsgs.map(m => ({ role:m.role, content:m.content })));
+      setMessages(prev => [...prev, { role:"assistant", content:text, typing:true }]);
+      // 不正解を検出して記録
+      if (text.includes("❌") || text.includes("不正解") || text.includes("惜しい！")) {
+        const wrongQ = userMsg.length > 50 ? userMsg.slice(0, 50) + "..." : userMsg;
+        setWrongAnswers(prev => {
+          const updated = [...prev, { question: wrongQ, topic: topic || examSubject || "不明" }];
+          if (updated.length >= 2) setShowWrongBtn(true);
+          return updated;
+        });
+      }
+    } catch(e) {
+      setMessages(prev => [...prev, { role:"assistant", content:`エラー: ${e.message}`, typing:false }]);
+    }
+    setLoading(false);
+  };
+
+  const startWrongTest = async () => {
+    if (wrongAnswers.length === 0) return;
+    setLoading(true);
+    const wrongList = wrongAnswers.map((w, i) => `${i+1}. ${w.question}`).join("
+");
+    const prompt = `さっきこの問題を間違えたよ：
+${wrongList}
+
+これをもとに苦手克服テストを出してね！同じ問題じゃなくて、同じ分野の似た問題を出してほしい。`;
+    const newMsgs = [...messages, { role:"user", content: prompt }];
+    setMessages(prev => [...prev, { role:"user", content:"🔁 苦手まとめテストをやる！" }]);
     try {
       const text = await callAPI(newMsgs.map(m => ({ role:m.role, content:m.content })));
       setMessages(prev => [...prev, { role:"assistant", content:text, typing:true }]);
@@ -432,6 +466,12 @@ ${mode === "quiz" ? `【小テストモード】
           )
         ),
         React.createElement("div", { ref:chatEndRef })
+      ),
+      showWrongBtn && React.createElement("div", { style:{ padding:"8px 0" } },
+        React.createElement("button", { onClick: startWrongTest, style:{ width:"100%", background:"linear-gradient(135deg,#FF6B6B,#ee0979)", border:"none", borderRadius:12, padding:"12px", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 } },
+          React.createElement("span", null, "🔁"),
+          React.createElement("span", null, `苦手まとめテスト（${wrongAnswers.length}問間違えた）`)
+        )
       ),
       imagePreview && React.createElement("div", { style:{ padding:"8px 0", display:"flex", alignItems:"center", gap:10 } },
         React.createElement("img", { src:imagePreview, style:{ height:60, borderRadius:8, border:"1px solid rgba(255,255,255,0.2)" } }),
