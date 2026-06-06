@@ -271,7 +271,7 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
   const startWrongTest = async () => {
     if (wrongAnswers.length === 0) return;
     setLoading(true);
-    const wrongList = wrongAnswers.map((w, i) => `${i+1}. ${w.question}`).join("
+    const wrongList = wrongAnswers.map((w, i) => (i+1) + ". " + w.question).join(`${i+1}. ${w.question}`).join("
 ");
     const prompt = `さっきこの問題を間違えたよ：
 ${wrongList}
