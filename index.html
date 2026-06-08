@@ -179,6 +179,26 @@ function App() {
   };
 
   const buildSystem = () => {
+    if (learningType === "review") {
+      return `あなたはフレンドリーな塾の先生だよ。
+言語: 常に日本語。スタイル: 親しみやすくタメ口で。「〜だよ」「〜しよう」を使う。絵文字適度に使う。
+
+【ノート・教科書復習モード】
+生徒が今日学校で習ったノートや教科書の写真を送ってくるよ。
+
+写真が送られてきたら：
+1. まず「読み取れた内容」を箇条書きで3〜5個にまとめる
+2. 「今日のポイント」として重要な概念を強調する
+3. そのまま「じゃあ復習問題やってこ！」と言って3問出題する
+4. 採点して解説する
+
+【採点ルール】
+- 正解: 「やったじゃん！⭕️」と言って次へ
+- 不正解: 「惜しい！❌」と言ってどこが間違いか丁寧に説明する
+
+写真が読み取りにくかったら「この部分が読み取りにくかったんだけど、〇〇ってことでいい？」と確認してね。
+最初に「今日のノートや教科書の写真を送ってね！📷 復習問題出すよ！」と言って始めてください。`;
+    }
     if (learningType === "exam") {
       const et = EXAM_TYPES.find(e => e.id === examType);
       return `あなたは${et?.label}専門の塾の先生です。受験: ${et?.label} / 科目: ${examSubject || "全般"}
@@ -318,6 +338,12 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
           React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "🏆"),
           React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#FF8C42",marginBottom:6} }, "受験対策"),
           React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, "中学受験・高校受験専門")
+        ),
+        React.createElement("div", { onClick:()=>{ setLearningType("review"); setScreen("note_review"); }, style:{ background:"rgba(6,214,160,0.1)", border:"2px solid rgba(6,214,160,0.4)", borderRadius:20, padding:"26px 22px", width:210, cursor:"pointer", transition:"all .25s", position:"relative" } },
+          React.createElement("div", { style:{ position:"absolute", top:-10, right:14, background:"linear-gradient(135deg,#06D6A0,#0891b2)", borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 } }, "NEW"),
+          React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "📷"),
+          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#06D6A0",marginBottom:6} }, "ノート復習"),
+          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, "写真を撮って今日の復習")
         )
       )
     )
@@ -401,6 +427,31 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
   );
 
   // 受験セットアップ
+  if (screen === "note_review") return wrap(
+    React.createElement("div", { style:{ paddingTop:40, paddingBottom:40, animation:"fadeIn .5s ease" } },
+      backBtn(()=>{ resetAll(); setScreen("home"); }),
+      React.createElement("div", { style:{ fontSize:48, textAlign:"center", marginBottom:12 } }, "📷"),
+      React.createElement("h2", { style:{ fontSize:22, fontWeight:800, marginBottom:8, textAlign:"center" } }, "ノート・教科書復習"),
+      React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:14, marginBottom:32, textAlign:"center", lineHeight:1.6 } },
+        "今日習ったノートや教科書の写真を撮って送ってね。", React.createElement("br"),
+        "AIが内容を読み取って復習問題を出してくれるよ！"
+      ),
+      React.createElement("div", { style:{ background:"rgba(6,214,160,0.1)", border:"1px solid rgba(6,214,160,0.3)", borderRadius:16, padding:"20px", marginBottom:24 } },
+        React.createElement("div", { style:{ fontWeight:700, fontSize:15, marginBottom:12, color:"#06D6A0" } }, "📌 使い方"),
+        ["①「授業スタート」を押す", "② 📷ボタンでノート・教科書の写真を撮る", "③ 複数ページある場合は1枚ずつ送ってね", "④ AIが内容をまとめて問題を出してくれる"].map((t, i) =>
+          React.createElement("div", { key:i, style:{ color:"rgba(255,255,255,0.7)", fontSize:14, marginBottom:6 } }, t)
+        )
+      ),
+      React.createElement("div", { style:{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:16, padding:"16px", marginBottom:32 } },
+        React.createElement("div", { style:{ fontWeight:600, fontSize:14, marginBottom:8, color:"rgba(255,255,255,0.7)" } }, "💡 きれいに撮るコツ"),
+        ["明るい場所で撮る", "ノート全体が入るように撮る", "文字がぼやけてたら撮り直してね"].map((t, i) =>
+          React.createElement("div", { key:i, style:{ color:"rgba(255,255,255,0.5)", fontSize:13, marginBottom:4 } }, "• " + t)
+        )
+      ),
+      React.createElement("button", { onClick: startSession, style:{ width:"100%", background:"linear-gradient(135deg,#06D6A0,#0891b2)", border:"none", borderRadius:14, padding:"16px", color:"#fff", fontSize:16, fontWeight:700, cursor:"pointer" } }, "授業スタート！📷")
+    )
+  );
+
   if (screen === "setup_exam") return wrap(
     React.createElement("div", { style:{ paddingTop:40, paddingBottom:40, animation:"fadeIn .5s ease" } },
       backBtn(()=>{ resetAll(); setScreen("home"); }),
