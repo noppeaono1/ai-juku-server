@@ -113,6 +113,45 @@ function TypingText({ text }) {
   return React.createElement(React.Fragment, null, displayed, !done && React.createElement("span", {className:"cursor"}, "|"));
 }
 
+function formatMessage(text) {
+  if (!text) return "";
+  return text
+    // LaTeX数式を読みやすく変換
+    .replace(/\$\$([^$]+)\$\$/g, (_, m) => m
+      .replace(/\frac\{([^}]+)\}\{([^}]+)\}/g, "($1/$2)")
+      .replace(/\times/g, "×")
+      .replace(/\div/g, "÷")
+      .replace(/\pm/g, "±")
+      .replace(/\sqrt\{([^}]+)\}/g, "√($1)")
+      .replace(/\^2/g, "²")
+      .replace(/\^3/g, "³")
+      .replace(/\^([0-9]+)/g, "^$1")
+      .replace(/\\/g, "")
+      .trim()
+    )
+    .replace(/\$([^$]+)\$/g, (_, m) => m
+      .replace(/\frac\{([^}]+)\}\{([^}]+)\}/g, "($1/$2)")
+      .replace(/\times/g, "×")
+      .replace(/\div/g, "÷")
+      .replace(/\pm/g, "±")
+      .replace(/\sqrt\{([^}]+)\}/g, "√($1)")
+      .replace(/\^2/g, "²")
+      .replace(/\^3/g, "³")
+      .trim()
+    )
+    // Markdownを変換
+    .replace(/### (.+)/g, "📌 $1")
+    .replace(/## (.+)/g, "📌 $1")
+    .replace(/# (.+)/g, "📌 $1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/^- /gm, "• ")
+    .replace(/^---$/gm, "──────")
+    // 正解・不正解を目立たせる
+    .replace(/(?<![⭕❌])正解(?!！)/g, "⭕️ 正解！")
+    .replace(/不正解/g, "❌ 不正解");
+}
+
 function Bubble({ msg }) {
   const isUser = msg.role === "user";
   const bubbleContent = () => {
@@ -122,10 +161,7 @@ function Bubble({ msg }) {
         msg.content ? React.createElement("span", null, msg.content) : null
       );
     }
-    // AIの返答：正解・不正解を目立たせる
-    const formatted = (msg.content || "")
-      .replace(/(?<![⭕❌])正解(?!！)/g, "⭕️ 正解！")
-      .replace(/不正解/g, "❌ 不正解");
+    const formatted = formatMessage(msg.content || "");
     return msg.typing ? React.createElement(TypingText, {text: formatted}) : formatted;
   };
   return React.createElement("div", {
@@ -203,6 +239,8 @@ function App() {
 【絶対守るルール】
 - 問題は必ず1問ずつ出す。複数問題を一度に出さない
 - 1問出したら必ず生徒の答えを待つ
+- 数式はLaTeX（$$や\frac）を絶対に使わない。分数は「5/8」で書く
+- Markdownの見出し（###）や太字（**）は使わない
 
 【採点ルール】
 - 正解: 「やったじゃん！⭕️」と言って次の1問へ
@@ -235,6 +273,8 @@ ${examMode==="weak_point"?`モード: 苦手克服 - 最初に「どの分野が
 - 1問出したら必ず生徒の答えを待つ。次の問題は答えが来てから出す
 - 箇条書きで複数問題を並べない
 - 解説も簡潔に。長文にしない
+- 数式はLaTeX（$$や\frac）を絶対に使わない。分数は「5/8」、掛け算は「×」、割り算は「÷」で書く
+- Markdownの見出し（###）や太字（**）は使わない。普通のテキストで書く
 
 【採点ルール・厳守】
 - 正解のとき: 「やったじゃん！⭕️」など一言だけ言って次の1問へ
