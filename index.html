@@ -250,7 +250,7 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           system: "あなたはフラッシュカード問題生成AIです。必ずJSON配列のみを返してください。余計な説明は一切不要。",
-          messages: [{ role:"user", content: GENRE_LABELS[flashGenre] + "の" + flashLevel + "レベルのフラッシュカードを" + flashCount + "問作ってください。以下のJSON配列形式のみで返してください。他の文章は一切含めないでください。[{"question":"問題","answer":"答え","memo":"覚え方のヒント（任意）"}]" }]
+          messages: [{ role:"user", content: GENRE_LABELS[flashGenre] + "の" + flashLevel + "レベルのフラッシュカードを" + flashCount + "問作ってください。JSON配列形式のみで返してください。形式: [{question:問題, answer:答え, memo:ヒント}]" }]
         }),
       });
       const data = await res.json();
