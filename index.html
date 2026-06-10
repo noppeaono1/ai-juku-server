@@ -155,6 +155,14 @@ function App() {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [wrongAnswers, setWrongAnswers] = useState([]);
+  const [flashGenre, setFlashGenre] = useState(null);
+  const [flashLevel, setFlashLevel] = useState(null);
+  const [flashCount, setFlashCount] = useState(10);
+  const [flashCards, setFlashCards] = useState([]);
+  const [flashIndex, setFlashIndex] = useState(0);
+  const [flashFlipped, setFlashFlipped] = useState(false);
+  const [flashWrong, setFlashWrong] = useState([]);
+  const [flashLoading, setFlashLoading] = useState(false);
   const [showWrongBtn, setShowWrongBtn] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -162,7 +170,7 @@ function App() {
   useEffect(() => { chatEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages, loading]);
 
   const resetAll = () => {
-    setGrade(null); setSubject(null); setTopic(null); setMode("lesson"); setWrongAnswers([]); setShowWrongBtn(false);
+    setGrade(null); setSubject(null); setTopic(null); setMode("lesson"); setWrongAnswers([]); setShowWrongBtn(false); setFlashGenre(null); setFlashLevel(null); setFlashCount(10); setFlashCards([]); setFlashIndex(0); setFlashFlipped(false); setFlashWrong([]); setFlashLoading(false);
     setExamType(null); setExamSubject(null); setExamMode(null);
     setMessages([]); setLearningType(null); setImage(null); setImagePreview(null);
   };
@@ -229,6 +237,40 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
 今日やった${topic}を3〜5問で確認してね。基礎から応用の順で。全部終わったら今日のまとめと総評を出して。最初に「じゃあ今日の${topic}の振り返りやってこ！」って言って。`
 : `【通常授業モード】
 まず${topic}をわかりやすく説明して、例題を一緒に解いて、練習問題を出してね。採点して解説したら「次いく？それとも質問ある？」って聞いて。最初に「今日は${topic}やってこ！まず説明するね😊」って言って。`}`;
+  };
+
+  const GENRE_LABELS = { english:"英単語", kanji:"漢字", math:"数学公式", history:"歴史年号", science:"理科用語", english_phrase:"英熟語" };
+
+  const startFlash = async () => {
+    setFlashCards([]); setFlashIndex(0); setFlashFlipped(false); setFlashWrong([]); setFlashLoading(true);
+    setScreen("flash_card");
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system: "あなたはフラッシュカード問題生成AIです。必ずJSON配列のみを返してください。余計な説明は一切不要。",
+          messages: [{ role:"user", content: GENRE_LABELS[flashGenre] + "の" + flashLevel + "レベルのフラッシュカードを" + flashCount + "問作ってください。以下のJSON配列形式のみで返してください。他の文章は一切含めないでください。[{"question":"問題","answer":"答え","memo":"覚え方のヒント（任意）"}]" }]
+        }),
+      });
+      const data = await res.json();
+      const text = data.content?.map(c => c.text||"").join("") || "[]";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const cards = JSON.parse(clean);
+      setFlashCards(cards);
+    } catch(e) {
+      setFlashCards([{question:"エラーが発生したよ", answer:"もう一度試してね", memo:""}]);
+    }
+    setFlashLoading(false);
+  };
+
+  const nextFlashCard = () => {
+    setFlashFlipped(false);
+    if (flashIndex + 1 >= flashCards.length) {
+      setScreen("flash_result");
+    } else {
+      setFlashIndex(prev => prev + 1);
+    }
   };
 
   const callAPI = async (msgs) => {
@@ -344,6 +386,12 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
           React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "📷"),
           React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#06D6A0",marginBottom:6} }, "ノート復習"),
           React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, "写真を撮って今日の復習")
+        ),
+        React.createElement("div", { onClick:()=>{ setLearningType("flash"); setScreen("flash_setup"); }, style:{ background:"rgba(255,214,0,0.1)", border:"2px solid rgba(255,214,0,0.4)", borderRadius:20, padding:"26px 22px", width:210, cursor:"pointer", transition:"all .25s", position:"relative" } },
+          React.createElement("div", { style:{ position:"absolute", top:-10, right:14, background:"linear-gradient(135deg,#FFD600,#FF8C00)", borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 } }, "NEW"),
+          React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "⚡️"),
+          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#FFD600",marginBottom:6} }, "スキマ学習"),
+          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, "電車・待ち時間に5分で復習")
         )
       )
     )
@@ -427,6 +475,129 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
   );
 
   // 受験セットアップ
+  if (screen === "flash_setup") return wrap(
+    React.createElement("div", { style:{ paddingTop:40, paddingBottom:40, animation:"fadeIn .5s ease" } },
+      backBtn(()=>{ resetAll(); setScreen("home"); }),
+      React.createElement("div", { style:{ fontSize:48, textAlign:"center", marginBottom:12 } }, "⚡️"),
+      React.createElement("h2", { style:{ fontSize:22, fontWeight:800, marginBottom:8, textAlign:"center" } }, "スキマ学習"),
+      React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:14, marginBottom:28, textAlign:"center" } }, "ジャンルと問題数を選んでね"),
+
+      React.createElement("div", { style:{ marginBottom:24 } },
+        React.createElement("h3", { style:{ fontSize:14, color:"rgba(255,255,255,0.6)", marginBottom:12, fontWeight:600 } }, "📚 ジャンル"),
+        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10 } },
+          [
+            { id:"english", label:"英単語", emoji:"🔤", color:"#4ECDC4" },
+            { id:"kanji", label:"漢字", emoji:"📖", color:"#FFEAA7" },
+            { id:"math", label:"数学公式", emoji:"📐", color:"#FF6B6B" },
+            { id:"history", label:"歴史年号", emoji:"🏯", color:"#96CEB4" },
+            { id:"science", label:"理科用語", emoji:"🔬", color:"#45B7D1" },
+            { id:"english_phrase", label:"英熟語", emoji:"🌎", color:"#DDA0DD" },
+          ].map(g => React.createElement("div", { key:g.id, onClick:()=>setFlashGenre(g.id), style:{ background:flashGenre===g.id?`${g.color}22`:"rgba(255,255,255,0.05)", border:flashGenre===g.id?`2px solid ${g.color}`:"2px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"14px 10px", textAlign:"center", cursor:"pointer", transition:"all .2s" } },
+            React.createElement("div", { style:{fontSize:24,marginBottom:4} }, g.emoji),
+            React.createElement("div", { style:{fontSize:13,fontWeight:600,color:flashGenre===g.id?g.color:"#fff"} }, g.label)
+          ))
+        )
+      ),
+
+      React.createElement("div", { style:{ marginBottom:24 } },
+        React.createElement("h3", { style:{ fontSize:14, color:"rgba(255,255,255,0.6)", marginBottom:12, fontWeight:600 } }, "🎯 学年・レベル"),
+        React.createElement("div", { style:{ marginBottom:10 } },
+          React.createElement("div", { style:{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:6 } }, "小学校"),
+          React.createElement("div", { style:{ display:"flex", gap:6, flexWrap:"wrap" } },
+            ["小1","小2","小3","小4","小5","小6"].map(g => React.createElement("button", { key:g, onClick:()=>setFlashLevel(g), style:{ background:flashLevel===g?"linear-gradient(135deg,#FFD600,#FF8C00)":"rgba(255,255,255,0.07)", border:flashLevel===g?"none":"1px solid rgba(255,255,255,0.15)", borderRadius:50, padding:"7px 14px", color:flashLevel===g?"#000":"#fff", cursor:"pointer", fontSize:13, fontWeight:600 } }, g))
+          )
+        ),
+        React.createElement("div", { style:{ marginBottom:10 } },
+          React.createElement("div", { style:{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:6 } }, "中学校"),
+          React.createElement("div", { style:{ display:"flex", gap:6, flexWrap:"wrap" } },
+            ["中1","中2","中3"].map(g => React.createElement("button", { key:g, onClick:()=>setFlashLevel(g), style:{ background:flashLevel===g?"linear-gradient(135deg,#FFD600,#FF8C00)":"rgba(255,255,255,0.07)", border:flashLevel===g?"none":"1px solid rgba(255,255,255,0.15)", borderRadius:50, padding:"7px 14px", color:flashLevel===g?"#000":"#fff", cursor:"pointer", fontSize:13, fontWeight:600 } }, g))
+          )
+        ),
+        React.createElement("div", { style:{ marginBottom:10 } },
+          React.createElement("div", { style:{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:6 } }, "高校"),
+          React.createElement("div", { style:{ display:"flex", gap:6, flexWrap:"wrap" } },
+            ["高1","高2","高3"].map(g => React.createElement("button", { key:g, onClick:()=>setFlashLevel(g), style:{ background:flashLevel===g?"linear-gradient(135deg,#FFD600,#FF8C00)":"rgba(255,255,255,0.07)", border:flashLevel===g?"none":"1px solid rgba(255,255,255,0.15)", borderRadius:50, padding:"7px 14px", color:flashLevel===g?"#000":"#fff", cursor:"pointer", fontSize:13, fontWeight:600 } }, g))
+          )
+        ),
+        React.createElement("div", null,
+          React.createElement("div", { style:{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:6 } }, "受験生（全範囲ランダム）"),
+          React.createElement("div", { style:{ display:"flex", gap:6, flexWrap:"wrap" } },
+            ["中学受験","高校受験","大学受験"].map(g => React.createElement("button", { key:g, onClick:()=>setFlashLevel(g), style:{ background:flashLevel===g?"linear-gradient(135deg,#FF6B6B,#ee0979)":"rgba(255,255,255,0.07)", border:flashLevel===g?"none":"1px solid rgba(255,255,255,0.15)", borderRadius:50, padding:"7px 14px", color:flashLevel===g?"#fff":"#fff", cursor:"pointer", fontSize:13, fontWeight:600 } }, g))
+          )
+        )
+      ),
+
+      React.createElement("div", { style:{ marginBottom:32 } },
+        React.createElement("h3", { style:{ fontSize:14, color:"rgba(255,255,255,0.6)", marginBottom:12, fontWeight:600 } }, "📝 問題数"),
+        React.createElement("div", { style:{ display:"flex", gap:9 } },
+          [5,10,20].map(n => React.createElement("button", { key:n, onClick:()=>setFlashCount(n), style:{ background:flashCount===n?"linear-gradient(135deg,#FFD600,#FF8C00)":"rgba(255,255,255,0.07)", border:flashCount===n?"none":"1px solid rgba(255,255,255,0.15)", borderRadius:50, padding:"9px 24px", color:flashCount===n?"#000":"#fff", cursor:"pointer", fontSize:14, fontWeight:700 } }, n + "問"))
+        )
+      ),
+
+      React.createElement("button", { onClick:()=>{ if(flashGenre&&flashLevel&&flashCount) startFlash(); }, disabled:!(flashGenre&&flashLevel&&flashCount), style:{ width:"100%", background:!(flashGenre&&flashLevel&&flashCount)?"rgba(255,255,255,0.1)":"linear-gradient(135deg,#FFD600,#FF8C00)", border:"none", borderRadius:14, padding:"16px", color:!(flashGenre&&flashLevel&&flashCount)?"rgba(255,255,255,0.3)":"#000", fontSize:16, fontWeight:700, cursor:!(flashGenre&&flashLevel&&flashCount)?"not-allowed":"pointer" } }, !(flashGenre&&flashLevel&&flashCount)?"選んでね":"スタート！⚡️")
+    )
+  );
+
+  if (screen === "flash_card") {
+    const card = flashCards[flashIndex];
+    const genreColors = { english:"#4ECDC4", kanji:"#FFEAA7", math:"#FF6B6B", history:"#96CEB4", science:"#45B7D1", english_phrase:"#DDA0DD" };
+    const color = genreColors[flashGenre] || "#667eea";
+    return wrap(
+      React.createElement("div", { style:{ paddingTop:20, paddingBottom:40, animation:"fadeIn .3s ease" } },
+        React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 } },
+          React.createElement("button", { onClick:()=>{ resetAll(); setScreen("home"); }, style:{ background:"rgba(255,255,255,0.1)", border:"none", borderRadius:8, padding:"7px 12px", color:"#fff", cursor:"pointer", fontSize:13 } }, "← 終了"),
+          React.createElement("div", { style:{ color:"rgba(255,255,255,0.6)", fontSize:14 } }, (flashIndex+1) + " / " + flashCards.length + "問"),
+          React.createElement("div", { style:{ background:`${color}22`, border:`1px solid ${color}44`, borderRadius:8, padding:"5px 12px", fontSize:12, color:color, fontWeight:600 } }, "⚡️ スキマ学習")
+        ),
+
+        React.createElement("div", { style:{ background:"rgba(255,255,255,0.06)", border:`2px solid ${color}44`, borderRadius:20, padding:"32px 24px", minHeight:200, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", marginBottom:20, textAlign:"center", cursor:"pointer" }, onClick:()=>setFlashFlipped(!flashFlipped) },
+          !flashFlipped ? React.createElement(React.Fragment, null,
+            React.createElement("div", { style:{ color:"rgba(255,255,255,0.4)", fontSize:12, marginBottom:12 } }, "タップして答えを見る"),
+            React.createElement("div", { style:{ fontSize:28, fontWeight:800, lineHeight:1.4 } }, card ? card.question : ""),
+            React.createElement("div", { style:{ color:"rgba(255,255,255,0.3)", fontSize:12, marginTop:16 } }, "👆 タップ")
+          ) : React.createElement(React.Fragment, null,
+            React.createElement("div", { style:{ color:"rgba(255,255,255,0.4)", fontSize:12, marginBottom:12 } }, "答え"),
+            React.createElement("div", { style:{ fontSize:24, fontWeight:800, color:color, lineHeight:1.4 } }, card ? card.answer : ""),
+            card && card.memo && React.createElement("div", { style:{ color:"rgba(255,255,255,0.5)", fontSize:13, marginTop:12, lineHeight:1.6 } }, card.memo)
+          )
+        ),
+
+        flashFlipped && React.createElement("div", { style:{ display:"flex", gap:12, marginBottom:20 } },
+          React.createElement("button", { onClick:()=>{ setFlashWrong(prev=>[...prev, flashIndex]); nextFlashCard(); }, style:{ flex:1, background:"rgba(255,107,107,0.2)", border:"2px solid #FF6B6B", borderRadius:14, padding:"14px", color:"#FF6B6B", fontSize:15, fontWeight:700, cursor:"pointer" } }, "❌ 覚えてない"),
+          React.createElement("button", { onClick:()=>nextFlashCard(), style:{ flex:1, background:"rgba(78,205,196,0.2)", border:"2px solid #4ECDC4", borderRadius:14, padding:"14px", color:"#4ECDC4", fontSize:15, fontWeight:700, cursor:"pointer" } }, "⭕️ 覚えた！")
+        ),
+
+        !flashFlipped && React.createElement("div", { style:{ display:"flex", gap:8, justifyContent:"center" } },
+          flashCards.map((_, i) => React.createElement("div", { key:i, style:{ width:8, height:8, borderRadius:"50%", background:i===flashIndex?color:"rgba(255,255,255,0.2)" } }))
+        ),
+
+        flashLoading && React.createElement("div", { style:{ textAlign:"center", color:"rgba(255,255,255,0.5)", fontSize:14, marginTop:16 } }, "次の問題を準備中... ⏳")
+      )
+    );
+  }
+
+  if (screen === "flash_result") return wrap(
+    React.createElement("div", { style:{ paddingTop:60, paddingBottom:40, textAlign:"center", animation:"fadeIn .5s ease" } },
+      React.createElement("div", { style:{ fontSize:64, marginBottom:16 } }, flashWrong.length===0?"🏆":flashWrong.length<=2?"😊":"💪"),
+      React.createElement("h2", { style:{ fontSize:24, fontWeight:800, marginBottom:8 } }, "お疲れ様！"),
+      React.createElement("div", { style:{ fontSize:18, marginBottom:24, color:"rgba(255,255,255,0.8)" } },
+        React.createElement("span", { style:{color:"#4ECDC4",fontWeight:700} }, (flashCards.length - flashWrong.length)),
+        " / " + flashCards.length + "問 正解！"
+      ),
+      flashWrong.length > 0 && React.createElement("div", { style:{ background:"rgba(255,107,107,0.1)", border:"1px solid rgba(255,107,107,0.3)", borderRadius:16, padding:"16px", marginBottom:24, textAlign:"left" } },
+        React.createElement("div", { style:{fontWeight:700,marginBottom:10,color:"#FF6B6B"} }, "❌ 覚えてなかったやつ"),
+        flashWrong.map(i => React.createElement("div", { key:i, style:{fontSize:14,color:"rgba(255,255,255,0.7)",marginBottom:6} },
+          "• " + flashCards[i].question + " → " + flashCards[i].answer
+        ))
+      ),
+      React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:12 } },
+        React.createElement("button", { onClick:()=>startFlash(), style:{ background:"linear-gradient(135deg,#FFD600,#FF8C00)", border:"none", borderRadius:14, padding:"15px", color:"#000", fontSize:15, fontWeight:700, cursor:"pointer" } }, "もう一度やる ⚡️"),
+        React.createElement("button", { onClick:()=>{ resetAll(); setScreen("flash_setup"); }, style:{ background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, padding:"15px", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer" } }, "別のジャンルをやる"),
+        React.createElement("button", { onClick:()=>{ resetAll(); setScreen("home"); }, style:{ background:"rgba(255,255,255,0.07)", border:"none", borderRadius:14, padding:"12px", color:"rgba(255,255,255,0.5)", fontSize:14, cursor:"pointer" } }, "ホームに戻る")
+      )
+    )
+  );
+
   if (screen === "note_review") return wrap(
     React.createElement("div", { style:{ paddingTop:40, paddingBottom:40, animation:"fadeIn .5s ease" } },
       backBtn(()=>{ resetAll(); setScreen("home"); }),
