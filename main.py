@@ -163,6 +163,7 @@ async def create_checkout_session(req: CheckoutRequest):
         upsert_subscriber(req.email, status=None)
         return {"url": session.url}
     except Exception as e:
+        print(f"[create-checkout-session エラー] {repr(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 

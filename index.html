@@ -337,7 +337,7 @@ function App() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setAuthError("決済ページの作成に失敗しました");
+        setAuthError("決済ページの作成に失敗しました: " + (data.detail || "不明なエラー"));
         setAuthChecking(false);
       }
     } catch (e) {
