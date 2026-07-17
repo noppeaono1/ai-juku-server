@@ -1,0 +1,82 @@
+[33mcommit 01a6790aa379f379a78a59ed0a9af372921b405c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Fri Jul 17 16:20:51 2026 +0900
+
+    バグ修正: 画像メッセージ・正解表示・トピック切替・ひらがなUI
+
+[33mcommit ce93c0df340c363fc41d23f54779f2f5e0de5c9b[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Wed Jun 10 11:58:55 2026 +0900
+
+    fix: 数式・循環小数の表示崩れを修正
+    
+    LaTeX変換の正規表現が \f \t \d \s をエスケープシーケンスとして
+    解釈してしまい \frac \times \div \sqrt が正しく変換されていなかった
+    問題を修正。あわせて \overline{} \dot{} \ddot{} を結合文字に変換し
+    循環小数の記法にも対応。
+
+[33mcommit 2e75afcb907103a6ec91dc43cac9daf2a9636ecd[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Wed Jun 10 10:18:04 2026 +0900
+
+    fix flash
+
+[33mcommit 087146d481aba6932e5187c592581ff664fac65c[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Wed Jun 10 10:05:43 2026 +0900
+
+    fix flash
+
+[33mcommit b96be9e0de5813dfbf72fea0419fca65fdeef0ea[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Wed Jun 10 09:52:37 2026 +0900
+
+    fix flash
+
+[33mcommit 542ddab681cb4de50ce9b679914497f3506c30d5[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Wed Jun 10 09:47:19 2026 +0900
+
+    add flash cards
+
+[33mcommit f98237f8173a5bace2c2c8de3673b5fa2a21b44c[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Mon Jun 8 11:39:35 2026 +0900
+
+    add note review mode
+
+[33mcommit 51594d1f0daa8981af5cc5d2e123a4233e0e3f77[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Sun Jun 7 00:23:08 2026 +0900
+
+    fix4
+
+[33mcommit fc732382b4d2c71a393558e57ae7387c7bda7c87[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Sun Jun 7 00:12:04 2026 +0900
+
+    fix2
+
+[33mcommit 2ddf646331046adc44c8a418e67c75574221f45f[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Sat Jun 6 23:53:48 2026 +0900
+
+    update
+
+[33mcommit 1d71fa4ffd2ed5b01cb94d98655a93aa826db3ec[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Sat Jun 6 23:21:17 2026 +0900
+
+    update index
+
+[33mcommit c7e7160bd8bf5e07a9ffed110bd8272a2994265f[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Sat Jun 6 23:20:44 2026 +0900
+
+    update index
+
+[33mcommit d5edf30f842ae4e7a227093be6e3455765917ce6[m
+Author: noppeaono1 <登録したメールアドレス>
+Date:   Sat Jun 6 22:20:25 2026 +0900
+
+    initial commit

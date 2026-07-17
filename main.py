@@ -55,4 +55,11 @@ async def chat(req: ChatRequest):
 
 @app.get("/")
 async def root():
-    return FileResponse("index.html")
+    return FileResponse(
+        "index.html",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )

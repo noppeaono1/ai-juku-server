@@ -251,7 +251,7 @@ function Bubble({ msg }) {
 }
 
 function App() {
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState("grade_gate");
   const [learningType, setLearningType] = useState(null);
   const [grade, setGrade] = useState(null);
   const [subject, setSubject] = useState(null);
@@ -283,6 +283,13 @@ function App() {
 
   const resetAll = () => {
     setGrade(null); setSubject(null); setTopic(null); setMode("lesson"); setWrongAnswers([]); setShowWrongBtn(false); setFlashGenre(null); setFlashLevel(null); setFlashCount(10); setFlashCards([]); setFlashIndex(0); setFlashFlipped(false); setFlashWrong([]); setFlashLoading(false);
+    setExamType(null); setExamSubject(null); setExamMode(null);
+    setMessages([]); setLearningType(null); setImage(null); setImagePreview(null); setImageMediaType("image/jpeg");
+  };
+
+  // ホームに戻る時、選んだ学年(ひらがな表示の判定に使う)は保持したまま他をリセットする
+  const resetForHome = () => {
+    setSubject(null); setTopic(null); setMode("lesson"); setWrongAnswers([]); setShowWrongBtn(false); setFlashGenre(null); setFlashLevel(null); setFlashCount(10); setFlashCards([]); setFlashIndex(0); setFlashFlipped(false); setFlashWrong([]); setFlashLoading(false);
     setExamType(null); setExamSubject(null); setExamMode(null);
     setMessages([]); setLearningType(null); setImage(null); setImagePreview(null); setImageMediaType("image/jpeg");
   };
@@ -502,35 +509,56 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
     onClick, style:{ background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:8, padding:"8px 16px", color:"#fff", cursor:"pointer", marginBottom:24, fontSize:14 }
   }, "← 戻る");
 
+  // 学年ゲート(最初の画面。ここで学年を決めてから、あとの画面の表示を切り替える)
+  if (screen === "grade_gate") return wrap(
+    React.createElement("div", { style:{ textAlign:"center", paddingTop:60, paddingBottom:40, animation:"fadeIn .6s ease" } },
+      React.createElement("div", { style:{ fontSize:60, marginBottom:10 } }, "🎓"),
+      React.createElement("h1", { style:{ fontSize:"clamp(22px,5vw,34px)", fontWeight:900, background:"linear-gradient(135deg,#667eea,#f093fb,#4ECDC4)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginBottom:8 } }, "なんねんせい？"),
+      React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:15, marginBottom:36 } }, "ボタンをおしてね"),
+      React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:14, maxWidth:340, margin:"0 auto" } },
+        [
+          { g:"小1〜3年", label:"しょうがく 1〜3年", emoji:"🐣" },
+          { g:"小4〜6年", label:"しょうがく 4〜6年", emoji:"🌱" },
+          { g:"中学生", label:"ちゅうがくせい", emoji:"🌿" },
+          { g:"高校生", label:"こうこうせい", emoji:"🌳" },
+        ].map(item => React.createElement("div", { key:item.g, onClick:()=>{ setGrade(item.g); setSubject(null); setTopic(null); setMode("lesson"); setScreen("home"); }, style:{ background:"rgba(102,126,234,0.1)", border:"2px solid rgba(102,126,234,0.4)", borderRadius:18, padding:"18px 20px", cursor:"pointer", display:"flex", alignItems:"center", gap:16, transition:"all .2s" } },
+          React.createElement("div", { style:{fontSize:34} }, item.emoji),
+          React.createElement("div", { style:{fontWeight:800,fontSize:19,textAlign:"left"} }, item.label)
+        ))
+      )
+    )
+  );
+
   // ホーム
   if (screen === "home") return wrap(
     React.createElement("div", { style:{ textAlign:"center", paddingTop:60, paddingBottom:40, animation:"fadeIn .6s ease" } },
       React.createElement("div", { style:{ fontSize:60, marginBottom:10 } }, "🎓"),
-      React.createElement("h1", { style:{ fontSize:"clamp(22px,5vw,40px)", fontWeight:900, background:"linear-gradient(135deg,#667eea,#f093fb,#4ECDC4)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginBottom:8 } }, "AI先生といっしょに学ぼう"),
-      React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:15, marginBottom:44 } }, "通常学習から受験対策まで対応"),
+      React.createElement("h1", { style:{ fontSize:"clamp(22px,5vw,40px)", fontWeight:900, background:"linear-gradient(135deg,#667eea,#f093fb,#4ECDC4)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginBottom:8 } }, isHiragana ? "AIせんせいといっしょにまなぼう" : "AI先生といっしょに学ぼう"),
+      React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:15, marginBottom:8 } }, isHiragana ? "ふだんのべんきょうから じゅけんたいさくまで" : "通常学習から受験対策まで対応"),
+      React.createElement("p", { onClick:()=>setScreen("grade_gate"), style:{ color:"rgba(167,139,250,0.8)", fontSize:13, marginBottom:36, cursor:"pointer", textDecoration:"underline" } }, isHiragana ? `いまのがくねん: ${grade}(かえる)` : `現在の学年: ${grade}(変更する)`),
       React.createElement("div", { style:{ display:"flex", gap:16, justifyContent:"center", flexWrap:"wrap" } },
-        React.createElement("div", { onClick:()=>{ setLearningType("normal"); setScreen("select_grade"); }, style:{ background:"rgba(102,126,234,0.1)", border:"2px solid rgba(102,126,234,0.4)", borderRadius:20, padding:"26px 22px", width:210, cursor:"pointer", transition:"all .25s" } },
+        React.createElement("div", { onClick:()=>{ setLearningType("normal"); setScreen("select_subject"); }, style:{ background:"rgba(102,126,234,0.1)", border:"2px solid rgba(102,126,234,0.4)", borderRadius:20, padding:"26px 22px", width:210, cursor:"pointer", transition:"all .25s" } },
           React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "📚"),
-          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#a78bfa",marginBottom:6} }, "通常学習"),
-          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, "小1〜高3まで全科目対応")
+          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#a78bfa",marginBottom:6} }, isHiragana ? "ふつうのべんきょう" : "通常学習"),
+          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, isHiragana ? "ぜんぶのきょうかにたいおう" : "小1〜高3まで全科目対応")
         ),
         React.createElement("div", { onClick:()=>{ setLearningType("exam"); setScreen("setup_exam"); }, style:{ background:"rgba(255,140,66,0.1)", border:"2px solid rgba(255,140,66,0.4)", borderRadius:20, padding:"26px 22px", width:210, cursor:"pointer", transition:"all .25s", position:"relative" } },
           React.createElement("div", { style:{ position:"absolute", top:-10, right:14, background:"linear-gradient(135deg,#FF8C42,#FF6B6B)", borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 } }, "NEW"),
           React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "🏆"),
-          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#FF8C42",marginBottom:6} }, "受験対策"),
-          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, "中学受験・高校受験専門")
+          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#FF8C42",marginBottom:6} }, isHiragana ? "じゅけんたいさく" : "受験対策"),
+          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, isHiragana ? "ちゅうがく・こうこうじゅけん" : "中学受験・高校受験専門")
         ),
         React.createElement("div", { onClick:()=>{ setLearningType("review"); setScreen("note_review"); }, style:{ background:"rgba(6,214,160,0.1)", border:"2px solid rgba(6,214,160,0.4)", borderRadius:20, padding:"26px 22px", width:210, cursor:"pointer", transition:"all .25s", position:"relative" } },
           React.createElement("div", { style:{ position:"absolute", top:-10, right:14, background:"linear-gradient(135deg,#06D6A0,#0891b2)", borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 } }, "NEW"),
           React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "📷"),
-          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#06D6A0",marginBottom:6} }, "ノート復習"),
-          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, "写真を撮って今日の復習")
+          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#06D6A0",marginBottom:6} }, isHiragana ? "ノートふくしゅう" : "ノート復習"),
+          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, isHiragana ? "しゃしんをとってふくしゅう" : "写真を撮って今日の復習")
         ),
         React.createElement("div", { onClick:()=>{ setLearningType("flash"); setScreen("flash_setup"); }, style:{ background:"rgba(255,214,0,0.1)", border:"2px solid rgba(255,214,0,0.4)", borderRadius:20, padding:"26px 22px", width:210, cursor:"pointer", transition:"all .25s", position:"relative" } },
           React.createElement("div", { style:{ position:"absolute", top:-10, right:14, background:"linear-gradient(135deg,#FFD600,#FF8C00)", borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700 } }, "NEW"),
           React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "⚡️"),
-          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#FFD600",marginBottom:6} }, "スキマ学習"),
-          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, "電車・待ち時間に5分で復習")
+          React.createElement("div", { style:{fontWeight:800,fontSize:17,color:"#FFD600",marginBottom:6} }, isHiragana ? "すきまがくしゅう" : "スキマ学習"),
+          React.createElement("div", { style:{color:"rgba(255,255,255,0.5)",fontSize:13,lineHeight:1.5} }, isHiragana ? "でんしゃ・まちじかんに5ふんで" : "電車・待ち時間に5分で復習")
         )
       )
     )
@@ -539,7 +567,7 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
   // 学年選択
   if (screen === "select_grade") return wrap(
     React.createElement("div", { style:{ paddingTop:40, paddingBottom:40, animation:"fadeIn .5s ease" } },
-      backBtn(()=>{ resetAll(); setScreen("home"); }),
+      backBtn(()=>{ resetForHome(); setScreen("home"); }),
       React.createElement("h2", { style:{fontSize:22,fontWeight:800,marginBottom:8} }, "🎒 学年を選んでね"),
       React.createElement("p", { style:{color:"rgba(255,255,255,0.5)",fontSize:14,marginBottom:28} }, "学年に合わせた授業をするよ"),
       React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:12 } },
@@ -617,7 +645,7 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
   // 受験セットアップ
   if (screen === "flash_setup") return wrap(
     React.createElement("div", { style:{ paddingTop:40, paddingBottom:40, animation:"fadeIn .5s ease" } },
-      backBtn(()=>{ resetAll(); setScreen("home"); }),
+      backBtn(()=>{ resetForHome(); setScreen("home"); }),
       React.createElement("div", { style:{ fontSize:48, textAlign:"center", marginBottom:12 } }, "⚡️"),
       React.createElement("h2", { style:{ fontSize:22, fontWeight:800, marginBottom:8, textAlign:"center" } }, "スキマ学習"),
       React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:14, marginBottom:28, textAlign:"center" } }, "ジャンルと問題数を選んでね"),
@@ -685,7 +713,7 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
     return wrap(
       React.createElement("div", { style:{ paddingTop:20, paddingBottom:40, animation:"fadeIn .3s ease" } },
         React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 } },
-          React.createElement("button", { onClick:()=>{ resetAll(); setScreen("home"); }, style:{ background:"rgba(255,255,255,0.1)", border:"none", borderRadius:8, padding:"7px 12px", color:"#fff", cursor:"pointer", fontSize:13 } }, "← 終了"),
+          React.createElement("button", { onClick:()=>{ resetForHome(); setScreen("home"); }, style:{ background:"rgba(255,255,255,0.1)", border:"none", borderRadius:8, padding:"7px 12px", color:"#fff", cursor:"pointer", fontSize:13 } }, "← 終了"),
           React.createElement("div", { style:{ color:"rgba(255,255,255,0.6)", fontSize:14 } }, (flashIndex+1) + " / " + flashCards.length + "問"),
           React.createElement("div", { style:{ background:`${color}22`, border:`1px solid ${color}44`, borderRadius:8, padding:"5px 12px", fontSize:12, color:color, fontWeight:600 } }, "⚡️ スキマ学習")
         ),
@@ -733,14 +761,14 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
       React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:12 } },
         React.createElement("button", { onClick:()=>startFlash(), style:{ background:"linear-gradient(135deg,#FFD600,#FF8C00)", border:"none", borderRadius:14, padding:"15px", color:"#000", fontSize:15, fontWeight:700, cursor:"pointer" } }, "もう一度やる ⚡️"),
         React.createElement("button", { onClick:()=>{ resetAll(); setScreen("flash_setup"); }, style:{ background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, padding:"15px", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer" } }, "別のジャンルをやる"),
-        React.createElement("button", { onClick:()=>{ resetAll(); setScreen("home"); }, style:{ background:"rgba(255,255,255,0.07)", border:"none", borderRadius:14, padding:"12px", color:"rgba(255,255,255,0.5)", fontSize:14, cursor:"pointer" } }, "ホームに戻る")
+        React.createElement("button", { onClick:()=>{ resetForHome(); setScreen("home"); }, style:{ background:"rgba(255,255,255,0.07)", border:"none", borderRadius:14, padding:"12px", color:"rgba(255,255,255,0.5)", fontSize:14, cursor:"pointer" } }, "ホームに戻る")
       )
     )
   );
 
   if (screen === "note_review") return wrap(
     React.createElement("div", { style:{ paddingTop:40, paddingBottom:40, animation:"fadeIn .5s ease" } },
-      backBtn(()=>{ resetAll(); setScreen("home"); }),
+      backBtn(()=>{ resetForHome(); setScreen("home"); }),
       React.createElement("div", { style:{ fontSize:48, textAlign:"center", marginBottom:12 } }, "📷"),
       React.createElement("h2", { style:{ fontSize:22, fontWeight:800, marginBottom:8, textAlign:"center" } }, "ノート・教科書復習"),
       React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:14, marginBottom:32, textAlign:"center", lineHeight:1.6 } },
@@ -765,7 +793,7 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
 
   if (screen === "setup_exam") return wrap(
     React.createElement("div", { style:{ paddingTop:40, paddingBottom:40, animation:"fadeIn .5s ease" } },
-      backBtn(()=>{ resetAll(); setScreen("home"); }),
+      backBtn(()=>{ resetForHome(); setScreen("home"); }),
       React.createElement("h2", { style:{fontSize:21,fontWeight:800,marginBottom:24} }, "🏆 受験対策コース"),
       React.createElement("div", { style:{marginBottom:24} },
         React.createElement("h3", { style:{fontSize:14,color:"rgba(255,255,255,0.6)",marginBottom:12,fontWeight:600} }, "受験の種類"),
