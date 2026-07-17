@@ -251,7 +251,11 @@ function Bubble({ msg }) {
 }
 
 function App() {
-  const [screen, setScreen] = useState("grade_gate");
+  const [screen, setScreen] = useState("auth_gate");
+  const [authEmail, setAuthEmail] = useState(localStorage.getItem("aijuku_email") || "");
+  const [authChecking, setAuthChecking] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
   const [learningType, setLearningType] = useState(null);
   const [grade, setGrade] = useState(null);
   const [subject, setSubject] = useState(null);
@@ -280,6 +284,67 @@ function App() {
   const fileInputRef = useRef(null);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages, loading]);
+
+  // 起動時:URLのcheckoutパラメータ確認 + 記憶しているメールアドレスがあれば自動で加入状況を確認
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutResult = params.get("checkout");
+    if (checkoutResult) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    if (authEmail) {
+      checkSubscription(authEmail, checkoutResult);
+    }
+  }, []);
+
+  const checkSubscription = async (email, checkoutResult) => {
+    setAuthChecking(true);
+    setAuthError("");
+    try {
+      const res = await fetch(`/check-subscription?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      if (data.active) {
+        setSubscribed(true);
+        localStorage.setItem("aijuku_email", email);
+        setScreen("grade_gate");
+      } else {
+        setSubscribed(false);
+        if (checkoutResult === "success") {
+          setAuthError("お支払い処理を確認中です。数秒後にもう一度お試しください。");
+        }
+      }
+    } catch (e) {
+      setAuthError("確認中にエラーが発生しました。もう一度お試しください。");
+    } finally {
+      setAuthChecking(false);
+    }
+  };
+
+  const startCheckout = async () => {
+    if (!authEmail || !authEmail.includes("@")) {
+      setAuthError("正しいメールアドレスを入力してください");
+      return;
+    }
+    setAuthChecking(true);
+    setAuthError("");
+    try {
+      const res = await fetch("/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: authEmail }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setAuthError("決済ページの作成に失敗しました");
+        setAuthChecking(false);
+      }
+    } catch (e) {
+      setAuthError("エラーが発生しました。もう一度お試しください。");
+      setAuthChecking(false);
+    }
+  };
 
   const resetAll = () => {
     setGrade(null); setSubject(null); setTopic(null); setMode("lesson"); setWrongAnswers([]); setShowWrongBtn(false); setFlashGenre(null); setFlashLevel(null); setFlashCount(10); setFlashCards([]); setFlashIndex(0); setFlashFlipped(false); setFlashWrong([]); setFlashLoading(false);
@@ -510,6 +575,39 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
   }, "← 戻る");
 
   // 学年ゲート(最初の画面。ここで学年を決めてから、あとの画面の表示を切り替える)
+  // ログイン/加入確認ゲート(アプリの一番最初の画面)
+  if (screen === "auth_gate") return wrap(
+    React.createElement("div", { style:{ textAlign:"center", paddingTop:80, paddingBottom:40, animation:"fadeIn .6s ease" } },
+      React.createElement("div", { style:{ fontSize:56, marginBottom:14 } }, "🔐"),
+      React.createElement("h1", { style:{ fontSize:"clamp(20px,5vw,30px)", fontWeight:900, background:"linear-gradient(135deg,#667eea,#f093fb,#4ECDC4)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginBottom:10 } }, "AI塾へようこそ"),
+      React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:14, marginBottom:32 } }, "メールアドレスを入力してください"),
+      React.createElement("div", { style:{ maxWidth:340, margin:"0 auto" } },
+        React.createElement("input", {
+          type:"email",
+          value:authEmail,
+          onChange:(e)=>setAuthEmail(e.target.value),
+          placeholder:"example@email.com",
+          style:{ width:"100%", background:"rgba(255,255,255,0.07)", border:"2px solid rgba(255,255,255,0.15)", borderRadius:12, padding:"14px 16px", color:"#fff", fontSize:15, marginBottom:14, boxSizing:"border-box" }
+        }),
+        authError && React.createElement("div", { style:{ color:"#FF6B6B", fontSize:13, marginBottom:14 } }, authError),
+        React.createElement("button", {
+          onClick:()=>checkSubscription(authEmail),
+          disabled:authChecking,
+          style:{ width:"100%", background:"linear-gradient(135deg,#667eea,#764ba2)", border:"none", borderRadius:12, padding:"14px", color:"#fff", fontSize:15, fontWeight:700, cursor:authChecking?"not-allowed":"pointer", marginBottom:10, opacity:authChecking?0.6:1 }
+        }, authChecking ? "確認中..." : "ログイン / 加入状況を確認"),
+        !subscribed && !authChecking && authEmail && React.createElement("div", { style:{ marginTop:20, padding:"20px", background:"rgba(102,126,234,0.1)", border:"2px solid rgba(102,126,234,0.3)", borderRadius:14 } },
+          React.createElement("div", { style:{ fontSize:14, color:"rgba(255,255,255,0.7)", marginBottom:12 } }, "このメールアドレスはまだ加入されていません"),
+          React.createElement("div", { style:{ fontSize:22, fontWeight:900, marginBottom:12 } }, "月額 ¥980"),
+          React.createElement("button", {
+            onClick:startCheckout,
+            disabled:authChecking,
+            style:{ width:"100%", background:"linear-gradient(135deg,#FF8C42,#FF6B6B)", border:"none", borderRadius:12, padding:"14px", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer" }
+          }, "登録して始める")
+        )
+      )
+    )
+  );
+
   if (screen === "grade_gate") return wrap(
     React.createElement("div", { style:{ textAlign:"center", paddingTop:60, paddingBottom:40, animation:"fadeIn .6s ease" } },
       React.createElement("div", { style:{ fontSize:60, marginBottom:10 } }, "🎓"),
@@ -535,7 +633,19 @@ ${topic}からランダムに5問出題してね。1問ずつ出して答え待�
       React.createElement("div", { style:{ fontSize:60, marginBottom:10 } }, "🎓"),
       React.createElement("h1", { style:{ fontSize:"clamp(22px,5vw,40px)", fontWeight:900, background:"linear-gradient(135deg,#667eea,#f093fb,#4ECDC4)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", marginBottom:8 } }, isHiragana ? "AIせんせいといっしょにまなぼう" : "AI先生といっしょに学ぼう"),
       React.createElement("p", { style:{ color:"rgba(255,255,255,0.5)", fontSize:15, marginBottom:8 } }, isHiragana ? "ふだんのべんきょうから じゅけんたいさくまで" : "通常学習から受験対策まで対応"),
-      React.createElement("p", { onClick:()=>setScreen("grade_gate"), style:{ color:"rgba(167,139,250,0.8)", fontSize:13, marginBottom:36, cursor:"pointer", textDecoration:"underline" } }, isHiragana ? `いまのがくねん: ${grade}(かえる)` : `現在の学年: ${grade}(変更する)`),
+      React.createElement("p", { onClick:()=>setScreen("grade_gate"), style:{ color:"rgba(167,139,250,0.8)", fontSize:13, marginBottom:8, cursor:"pointer", textDecoration:"underline" } }, isHiragana ? `いまのがくねん: ${grade}(かえる)` : `現在の学年: ${grade}(変更する)`),
+      React.createElement("p", {
+        onClick: async ()=>{
+          try {
+            const res = await fetch("/create-portal-session", {
+              method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ email: authEmail })
+            });
+            const data = await res.json();
+            if (data.url) window.location.href = data.url;
+          } catch(e) {}
+        },
+        style:{ color:"rgba(255,255,255,0.35)", fontSize:12, marginBottom:36, cursor:"pointer", textDecoration:"underline" }
+      }, isHiragana ? "かいいん・しはらいのかんり" : "会員・お支払いの管理"),
       React.createElement("div", { style:{ display:"flex", gap:16, justifyContent:"center", flexWrap:"wrap" } },
         React.createElement("div", { onClick:()=>{ setLearningType("normal"); setScreen("select_subject"); }, style:{ background:"rgba(102,126,234,0.1)", border:"2px solid rgba(102,126,234,0.4)", borderRadius:20, padding:"26px 22px", width:210, cursor:"pointer", transition:"all .25s" } },
           React.createElement("div", { style:{fontSize:42,marginBottom:10} }, "📚"),
