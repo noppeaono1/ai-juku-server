@@ -293,11 +293,11 @@ function App() {
       window.history.replaceState({}, "", window.location.pathname);
     }
     if (authEmail) {
-      checkSubscription(authEmail, checkoutResult);
+      checkSubscription(authEmail, checkoutResult, checkoutResult === "success" ? 5 : 0);
     }
   }, []);
 
-  const checkSubscription = async (email, checkoutResult) => {
+  const checkSubscription = async (email, checkoutResult, retriesLeft) => {
     setAuthChecking(true);
     setAuthError("");
     try {
@@ -307,11 +307,18 @@ function App() {
         setSubscribed(true);
         localStorage.setItem("aijuku_email", email);
         setScreen("grade_gate");
-      } else {
-        setSubscribed(false);
-        if (checkoutResult === "success") {
-          setAuthError("お支払い処理を確認中です。数秒後にもう一度お試しください。");
-        }
+        setAuthChecking(false);
+        return;
+      }
+      setSubscribed(false);
+      // 決済直後は、Webhookの反映に数秒かかることがあるため自動で数回リトライする
+      if (checkoutResult === "success" && retriesLeft > 0) {
+        setAuthError(`お支払い処理を確認中です...(あと${retriesLeft}回確認します)`);
+        setTimeout(() => checkSubscription(email, checkoutResult, retriesLeft - 1), 3000);
+        return;
+      }
+      if (checkoutResult === "success" && retriesLeft === 0) {
+        setAuthError("お支払いの確認に時間がかかっています。少し待ってから、もう一度「ログイン/加入状況を確認」を押してください。");
       }
     } catch (e) {
       setAuthError("確認中にエラーが発生しました。もう一度お試しください。");
@@ -327,6 +334,7 @@ function App() {
     }
     setAuthChecking(true);
     setAuthError("");
+    localStorage.setItem("aijuku_email", authEmail); // 決済から戻ってきた時に思い出せるよう先に保存しておく
     try {
       const res = await fetch("/create-checkout-session", {
         method: "POST",

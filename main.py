@@ -204,31 +204,34 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="不正なWebhookリクエストです")
 
     event_type = event["type"]
-    data = event["data"]["object"]
+    data = dict(event["data"]["object"])  # StripeObjectのままだと.get()が使えない場合があるため辞書に変換
 
-    if event_type == "checkout.session.completed":
-        email = data.get("customer_email") or (data.get("metadata") or {}).get("email")
-        customer_id = data.get("customer")
-        subscription_id = data.get("subscription")
-        if email:
-            upsert_subscriber(email, customer_id=customer_id, subscription_id=subscription_id, status="active")
+    try:
+        if event_type == "checkout.session.completed":
+            email = data.get("customer_email") or (data.get("metadata") or {}).get("email")
+            customer_id = data.get("customer")
+            subscription_id = data.get("subscription")
+            if email:
+                upsert_subscriber(email, customer_id=customer_id, subscription_id=subscription_id, status="active")
 
-    elif event_type in ("customer.subscription.updated", "customer.subscription.deleted"):
-        customer_id = data.get("customer")
-        status = "active" if data.get("status") == "active" else "inactive"
-        conn = get_db()
-        row = conn.execute("SELECT email FROM subscribers WHERE stripe_customer_id = ?", (customer_id,)).fetchone()
-        conn.close()
-        if row:
-            upsert_subscriber(row["email"], status=status)
+        elif event_type in ("customer.subscription.updated", "customer.subscription.deleted"):
+            customer_id = data.get("customer")
+            status = "active" if data.get("status") == "active" else "inactive"
+            conn = get_db()
+            row = conn.execute("SELECT email FROM subscribers WHERE stripe_customer_id = ?", (customer_id,)).fetchone()
+            conn.close()
+            if row:
+                upsert_subscriber(row["email"], status=status)
 
-    elif event_type == "invoice.payment_failed":
-        customer_id = data.get("customer")
-        conn = get_db()
-        row = conn.execute("SELECT email FROM subscribers WHERE stripe_customer_id = ?", (customer_id,)).fetchone()
-        conn.close()
-        if row:
-            upsert_subscriber(row["email"], status="inactive")
+        elif event_type == "invoice.payment_failed":
+            customer_id = data.get("customer")
+            conn = get_db()
+            row = conn.execute("SELECT email FROM subscribers WHERE stripe_customer_id = ?", (customer_id,)).fetchone()
+            conn.close()
+            if row:
+                upsert_subscriber(row["email"], status="inactive")
+    except Exception as e:
+        print(f"[webhook エラー] event_type={event_type} error={repr(e)}")
 
     return {"received": True}
 
