@@ -193,6 +193,15 @@ async def create_portal_session(req: PortalRequest):
 # Stripe: Webhook(決済完了・解約などのイベントを受け取る)
 # ============================================================
 
+def stripe_get(obj, key, default=None):
+    """StripeObjectはdict()変換や.get()が期待通り動かないことがあるため、
+    キーが存在する時だけ安全に値を取り出す専用のヘルパー"""
+    try:
+        return obj[key]
+    except (KeyError, TypeError):
+        return default
+
+
 @app.post("/webhook")
 async def stripe_webhook(request: Request):
     payload = await request.body()
@@ -204,19 +213,20 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="不正なWebhookリクエストです")
 
     event_type = event["type"]
-    data = dict(event["data"]["object"])  # StripeObjectのままだと.get()が使えない場合があるため辞書に変換
+    data = event["data"]["object"]
 
     try:
         if event_type == "checkout.session.completed":
-            email = data.get("customer_email") or (data.get("metadata") or {}).get("email")
-            customer_id = data.get("customer")
-            subscription_id = data.get("subscription")
+            metadata = stripe_get(data, "metadata")
+            email = stripe_get(data, "customer_email") or stripe_get(metadata, "email")
+            customer_id = stripe_get(data, "customer")
+            subscription_id = stripe_get(data, "subscription")
             if email:
                 upsert_subscriber(email, customer_id=customer_id, subscription_id=subscription_id, status="active")
 
         elif event_type in ("customer.subscription.updated", "customer.subscription.deleted"):
-            customer_id = data.get("customer")
-            status = "active" if data.get("status") == "active" else "inactive"
+            customer_id = stripe_get(data, "customer")
+            status = "active" if stripe_get(data, "status") == "active" else "inactive"
             conn = get_db()
             row = conn.execute("SELECT email FROM subscribers WHERE stripe_customer_id = ?", (customer_id,)).fetchone()
             conn.close()
@@ -224,7 +234,7 @@ async def stripe_webhook(request: Request):
                 upsert_subscriber(row["email"], status=status)
 
         elif event_type == "invoice.payment_failed":
-            customer_id = data.get("customer")
+            customer_id = stripe_get(data, "customer")
             conn = get_db()
             row = conn.execute("SELECT email FROM subscribers WHERE stripe_customer_id = ?", (customer_id,)).fetchone()
             conn.close()
