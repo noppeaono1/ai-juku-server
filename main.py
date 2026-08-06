@@ -250,6 +250,11 @@ async def stripe_webhook(request: Request):
 # トップページ
 # ============================================================
 
+@app.get("/tokushoho")
+async def tokushoho():
+    return FileResponse("tokushoho.html")
+
+
 @app.get("/")
 async def root():
     return FileResponse(
